@@ -1,0 +1,30 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  vue-linting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: cd vue_app && npm ci
+      - name: Lint
+        run: cd vue_app && npm run lint
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: azure/docker-login@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_LOGIN }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      - name: Build Docker image
+        run: docker build --tag ${{ github.repository }}:0.${{ github.run_number }} --tag ${{ github.repository }}:latest .
+      - name: Publish Version Image to DockerHub
+        run: docker push ${{ github.repository }}:0.${{ github.run_number }}
+      - name: Publish Latest to DockerHub
+        if: github.ref == 'refs/heads/master'
+        run: docker push ${{ github.repository }}:latest
